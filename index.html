@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>방학 중 복무 신청</title>
+    <title>방학 중 복무 관리 - 담당자용 대시보드</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -15,677 +15,390 @@
             box-sizing: border-box;
         }
 
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            overflow-x: hidden;
-        }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #ffffff;
+            background: #f5f5f5;
             min-height: 100vh;
             color: #333;
         }
 
         .container {
-            width: 100vw;
-            margin: 0;
+            max-width: 1600px;
+            margin: 0 auto;
             padding: 20px;
-            box-sizing: border-box;
-            max-width: none;
         }
 
         .header {
-            text-align: left;
-            margin-bottom: 20px;
-            padding: 15px 0;
-            width: calc(100vw - 40px);
-            max-width: none;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: minmax(400px, 500px) minmax(180px, 220px) 1fr;
-            gap: 20px;
-            align-items: stretch;
-            width: calc(100vw - 40px);
-            max-width: none;
-        }
-
-        .calendar-section {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 15px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .control-panel {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-            margin-top: 20px;
-        }
-
-        .calendar-header {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 2px;
-            margin-bottom: 10px;
-        }
-
-        .day-name {
-            text-align: center;
-            font-weight: bold;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.2);
+            background: white;
+            padding: 15px 20px;
             border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
         }
 
-        .calendar-day {
-            aspect-ratio: 1;
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+
+        .date-grid {
+            display: grid;
+            grid-template-columns: 138px repeat(51, 40px);
+            gap: 2px;
+            margin-bottom: 20px;
+            min-width: max-content;
+        }
+
+        .date-header {
+            display: contents;
+        }
+
+        .teacher-name {
+            background: white;
+            color: #333;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 12px;
+            border-radius: 6px;
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            min-width: 138px;
+            max-width: 138px;
+            border: 2px solid #ccc;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            background: white;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            font-size: 13px;
-            font-weight: 600;
-            min-height: 45px;
         }
 
-        .calendar-day:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
-        }
-
-        .calendar-day.other-month {
-            opacity: 0.3;
-            pointer-events: none;
-        }
-
-        .calendar-day.weekend {
-            color: #FFB6C1;
-        }
-
-        .calendar-day.holiday {
-            background: rgba(255, 107, 107, 0.3);
-            color: #FFB6C1;
-        }
-
-        /* 복무 유형별 스타일 */
-        .calendar-day.duty-41 {
-            background: rgba(76, 175, 80, 0.3);
-            border: 2px solid #4CAF50;
-        }
-
-        .calendar-day.duty-work {
-            background: rgba(33, 150, 243, 0.3);
-            border: 2px solid #2196F3;
-        }
-
-        .calendar-day.duty-business {
-            background: rgba(255, 152, 0, 0.3);
-            border: 2px solid #FF9800;
-        }
-
-        .calendar-day.duty-vacation {
-            background: rgba(244, 67, 54, 0.3);
-            border: 2px solid #F44336;
-        }
-
-        .calendar-day.duty-overseas {
-            background: rgba(156, 39, 176, 0.3);
-            border: 2px solid #9C27B0;
-        }
-
-        .calendar-day.duty-weekend-excluded {
-            background: rgba(200, 200, 200, 0.2);
-            border: 2px dashed #999;
-            opacity: 0.7;
-        }
-
-        /* 주말이면서 복무일인 경우 */
-        .calendar-day.weekend.duty-41 {
-            background: rgba(76, 175, 80, 0.2);
-            border: 2px solid #4CAF50;
-            color: #333;
-        }
-
-        .calendar-day.weekend.duty-work {
-            background: rgba(33, 150, 243, 0.2);
-            border: 2px solid #2196F3;
-            color: #333;
-        }
-
-        .calendar-day.weekend.duty-business {
-            background: rgba(255, 152, 0, 0.2);
-            border: 2px solid #FF9800;
-            color: #333;
-        }
-
-        .calendar-day.weekend.duty-vacation {
-            background: rgba(244, 67, 54, 0.2);
-            border: 2px solid #F44336;
-            color: #333;
-        }
-
-        .calendar-day.weekend.duty-overseas {
-            background: rgba(156, 39, 176, 0.2);
-            border: 2px solid #9C27B0;
-            color: #333;
-        }
-
-        .calendar-day.selected {
-            background: rgba(255, 215, 0, 0.5);
-            border: 2px solid #FFD700;
-        }
-
-        .calendar-day.selected-range {
-            background: rgba(255, 215, 0, 0.3);
-        }
-
-        .calendar-day.split-selected {
-            background: rgba(255, 0, 0, 0.5);
-            border: 2px solid #dc3545;
-            transform: scale(0.95);
-        }
-
-        .calendar-day.dragging {
-            opacity: 0.5;
-            transform: scale(0.9);
-            z-index: 1000;
-        }
-
-        .drop-zone {
-            background: white;
-            border: 2px dashed #ddd;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            min-height: 60px;
+        .teacher-info {
             display: flex;
-            flex-direction: row;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            gap: 8px;
+            margin-bottom: 4px;
         }
 
-        .drop-zone:hover {
-            border-color: #007bff;
-            background: rgba(0, 123, 255, 0.1);
+        .teacher-checkboxes {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
-        .drop-zone.drag-over {
-            border-color: #28a745;
-            background: rgba(40, 167, 69, 0.2);
-            transform: scale(1.05);
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: normal;
+            white-space: nowrap;
         }
 
-        .drop-icon {
-            font-size: 24px;
+        .checkbox-row input[type="checkbox"] {
+            width: 12px;
+            height: 12px;
         }
 
-        .drop-label {
-            font-size: 12px;
+        .date-cell {
+            background: white;
+            border: 2px solid #ccc;
+            padding: 4px;
+            text-align: center;
+            font-size: 10px;
             font-weight: bold;
+            min-height: 50px;
+            min-width: 40px;
+            max-width: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-radius: 4px;
             color: #333;
         }
 
-        .duty-type {
+        .date-number {
             font-size: 11px;
-            margin-top: 3px;
-            padding: 2px 6px;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+
+        .date-day {
+            font-size: 9px;
+            color: #6b7280;
+        }
+
+        .weekend {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .holiday {
+            background: #fef2f2;
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .duty-cell {
+            min-height: 40px;
+            min-width: 40px;
+            max-width: 40px;
             border-radius: 4px;
-            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            border: 2px solid;
+            color: #333;
         }
 
-        .duty-type.type-41 {
-            background: rgba(76, 175, 80, 0.8);
-            color: white;
+        .duty-41 {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: #4CAF50;
         }
 
-        .duty-type.type-work {
-            background: rgba(33, 150, 243, 0.8);
-            color: white;
+        .duty-work {
+            background: rgba(33, 150, 243, 0.3);
+            border-color: #2196F3;
         }
 
-        .duty-type.type-business {
-            background: rgba(255, 152, 0, 0.8);
-            color: white;
+        .duty-business {
+            background: rgba(255, 152, 0, 0.3);
+            border-color: #FF9800;
         }
 
-        .duty-type.type-vacation {
-            background: rgba(244, 67, 54, 0.8);
-            color: white;
+        .duty-vacation {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: #F44336;
         }
 
-        .duty-type.type-overseas {
-            background: rgba(156, 39, 176, 0.8);
-            color: white;
-        }
-
-        .duty-type.type-weekend-excluded {
-            background: rgba(150, 150, 150, 0.7);
-            color: white;
-            font-size: 10px;
+        .duty-overseas {
+            background: rgba(156, 39, 176, 0.3);
+            border-color: #9C27B0;
         }
 
         /* 혼합 복무 유형 스타일 */
-        .calendar-day.duty-mixed {
+        .duty-mixed {
             position: relative;
             overflow: hidden;
+            background: white;
+            border: 2px solid #ccc;
         }
 
-        .calendar-day.duty-mixed:hover {
+        .duty-mixed:hover {
             transform: scale(1.05);
             z-index: 10;
         }
 
-        .duty-type.type-mixed {
-            /* 배경은 JavaScript에서 동적으로 설정 */
+        .mixed-duty-label {
+            font-size: 8px;
+            font-weight: bold;
             color: white;
-            font-size: 10px;
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-weight: bold;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            padding: 1px 2px;
+            border-radius: 2px;
+            line-height: 1.2;
         }
 
-        /* 혼합 복무 유형의 주말 처리 */
-        .calendar-day.weekend.duty-mixed {
-            opacity: 0.8;
+        /* 빗금 무늬 스타일 */
+        .checked-by-admin {
+            background-image: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 3px,
+                rgba(0, 0, 0, 0.3) 3px,
+                rgba(0, 0, 0, 0.3) 6px
+            ) !important;
         }
 
-
-        .month-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
+        .checked-by-research {
+            background-image: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 3px,
+                rgba(0, 0, 0, 0.3) 3px,
+                rgba(0, 0, 0, 0.3) 6px
+            ) !important;
         }
 
-        .nav-btn {
-            background: #007bff;
-            border: none;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 13px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .current-month {
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-
-        .form-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
             border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: transform 0.3s ease;
         }
 
-        .form-group {
-            margin-bottom: 12px;
+        .stat-card:hover {
+            transform: translateY(-5px);
         }
 
-        .form-group label {
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: bold;
             display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            color: #007bff;
-            font-size: 14px;
         }
 
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            background: white;
-            color: #333;
-            font-size: 14px;
-        }
-
-        .form-group input::placeholder,
-        .form-group textarea::placeholder {
-            color: #999;
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 8px;
         }
 
         .btn {
-            background: #007bff;
+            background: #2563eb;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 10px 18px;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: bold;
             font-size: 14px;
+            margin: 3px;
             transition: all 0.3s ease;
-            width: 100%;
-            margin-bottom: 8px;
+            font-weight: 500;
         }
 
         .btn:hover {
-            background: #0056b3;
+            background: #1d4ed8;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(37,99,235,0.3);
         }
 
-        .btn-danger {
-            background: #dc3545;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .btn-warning {
-            background: #ffc107;
-            color: #212529;
-        }
-
-        .btn-warning:hover {
-            background: #e0a800;
-        }
-
-        .application-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .application-item {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        .application-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .application-type {
-            padding: 4px 8px;
-            border-radius: 5px;
+        .firebase-status {
+            padding: 8px 15px;
+            border-radius: 20px;
             font-size: 12px;
             font-weight: bold;
+            margin-left: 10px;
         }
 
-        .status-pending {
-            background: rgba(255, 193, 7, 0.8);
-            color: black;
+        .firebase-connected {
+            background: #d4edda;
+            color: #155724;
         }
 
-        .status-approved {
-            background: rgba(76, 175, 80, 0.8);
+        .firebase-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .scroll-container {
+            overflow-x: auto;
+            overflow-y: visible;
+            width: 100%;
+            padding-bottom: 10px;
         }
 
         .legend {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-top: 15px;
-            font-size: 11px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
             gap: 6px;
+            font-size: 11px;
         }
 
         .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-        }
-
-        .approval-details {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-        }
-
-        .approval-item {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-
-        .approval-item-header {
-            font-weight: bold;
-            color: #495057;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #e9ecef;
-            padding-bottom: 5px;
-        }
-
-        .approval-line {
-            margin-bottom: 20px;
-        }
-
-        .approval-box {
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            background: #f8f9fa;
-        }
-
-        .period-info {
-            font-size: 12px;
-            color: #6c757d;
-            margin-top: 5px;
-        }
-
-        /* 모달 스타일 */
-        .modal {
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            width: 400px;
-            max-width: 90%;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .close {
-            cursor: pointer;
-            font-size: 24px;
-            font-weight: bold;
-            color: #999;
-        }
-
-        .close:hover {
-            color: #333;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .time-slots {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .time-slot {
-            display: grid;
-            grid-template-columns: 100px 100px 1fr 30px;
-            gap: 10px;
-            align-items: center;
-            padding: 10px;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            background: #f8f9fa;
-        }
-
-        .time-input {
-            padding: 4px 6px;
-            border: 1px solid #ddd;
+            width: 16px;
+            height: 16px;
             border-radius: 4px;
-            font-size: 12px;
-            text-align: center;
         }
 
-        .delete-slot {
-            background: #dc3545;
+        .department-section {
+            margin-bottom: 30px;
+        }
+
+        .department-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: none;
-            border-radius: 4px;
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            font-size: 12px;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0;
+            font-weight: bold;
+            font-size: 16px;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 10px;
         }
 
-        .delete-slot:hover {
-            background: #c82333;
+        .department-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 0 0 10px 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-top: none;
         }
 
-        .add-time-slot {
+        .department-grid {
+            display: grid;
+            grid-template-columns: 138px repeat(51, 40px);
+            gap: 2px;
+            padding: 15px;
+            min-width: max-content;
+        }
+
+        .no-teachers {
+            padding: 20px;
             text-align: center;
-            margin: 15px 0;
+            color: #6b7280;
+            font-style: italic;
         }
 
-        .time-slot label {
+        .department-row {
+            background: #374151;
+            color: white;
+            padding: 8px;
             font-weight: bold;
             font-size: 14px;
-            color: #333;
-            min-width: 120px;
-        }
-
-        .time-duty-type {
-            padding: 6px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            flex: 1;
-            margin-left: 10px;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-
-        /* 해외여행 위저드 스타일 */
-        .wizard-step {
-            min-height: 300px;
-        }
-
-        .duty-option {
-            transition: all 0.3s ease;
-        }
-
-        .duty-option:hover {
-            border-color: #6f42c1 !important;
-            background: rgba(111, 66, 193, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .duty-option.selected {
-            border-color: #6f42c1 !important;
-            background: rgba(111, 66, 193, 0.2);
-        }
-
-        @media (max-width: 900px) {
-            .main-content {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
-            .calendar-section {
-                max-width: 500px;
-                margin: 0 auto;
-            }
+            text-align: center;
+            border-radius: 6px;
+            grid-column: 1 / -1;
+            margin: 5px 0;
         }
 
         @media (max-width: 768px) {
-            .calendar {
-                font-size: 12px;
-            }
-
-            .calendar-day {
-                min-height: 50px;
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -693,254 +406,52 @@
 <body>
     <div class="container">
         <div class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
-                <h1 class="text-2xl font-bold">📅 방학 중 복무 신청</h1>
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <div>
-                        <label style="font-size: 14px; color: #666; margin-right: 5px;">이름</label>
-                        <input type="text" id="teacher-name" placeholder="성명" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; width: 100px;">
-                    </div>
-                    <div>
-                        <label style="font-size: 14px; color: #666; margin-right: 5px;">부서</label>
-                        <select id="teacher-department" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; width: 120px;">
-                            <option value="">선택</option>
-                            <option value="교무기획부">교무기획부</option>
-                            <option value="미래교육연구부">미래교육연구부</option>
-                            <option value="생활안전인권부">생활안전인권부</option>
-                            <option value="진로상담부">진로상담부</option>
-                            <option value="학생자치부">학생자치부</option>
-                            <option value="과학정보부">과학정보부</option>
-                            <option value="인문복지부">인문복지부</option>
-                            <option value="교육과정부">교육과정부</option>
-                            <option value="문화예술체육부">문화예술체육부</option>
-                            <option value="1학년부">1학년부</option>
-                            <option value="2학년부">2학년부</option>
-                            <option value="3학년부">3학년부</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span id="firebase-status" style="padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #f8d7da; color: #721c24;">🔴 연결 안됨</span>
-                        <button onclick="showFirebaseSettings()" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">⚙️ Firebase 설정</button>
-                    </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <h1 class="text-2xl font-bold">🏫 방학 중 복무 관리 대시보드</h1>
+                <div style="display: flex; align-items: center;">
+                    <span class="text-sm text-gray-500" id="last-updated">마지막 업데이트: -</span>
+                    <button class="btn ml-4" onclick="refreshData()">🔄 새로고침</button>
+                    <span id="firebase-status" class="firebase-status firebase-disconnected">Firebase 연결 중...</span>
+                    <button onclick="showFirebaseSettings()" style="padding: 8px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">⚙️ Firebase 설정</button>
                 </div>
             </div>
         </div>
 
-        <div class="main-content">
-            <!-- 달력 섹션 -->
-            <div class="calendar-section">
-                <div class="month-nav">
-                    <button class="nav-btn" onclick="changeMonth(-1)">◀ 이전</button>
-                    <div class="current-month" id="current-month">2025년 7월</div>
-                    <button class="nav-btn" onclick="changeMonth(1)">다음 ▶</button>
-                </div>
 
-                <div class="calendar-header">
-                    <div class="day-name">일</div>
-                    <div class="day-name">월</div>
-                    <div class="day-name">화</div>
-                    <div class="day-name">수</div>
-                    <div class="day-name">목</div>
-                    <div class="day-name">금</div>
-                    <div class="day-name">토</div>
-                </div>
-
-                <div class="calendar" id="calendar"></div>
-
-            </div>
-
-            <!-- 복무 유형 변경 -->
-            <div class="control-panel">
-                <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: bold;">📅 복무 유형 변경</h4>
-                <p style="font-size: 12px; color: #666; margin-bottom: 15px;">날짜를 끌어다 놓으세요</p>
-                <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
-                    <div class="drop-zone" id="drop-41" data-type="41">
-                        <div class="drop-icon">📚</div>
-                        <div class="drop-label">41조 연수</div>
+        <!-- 날짜별 복무 현황 -->
+        <div class="card">
+            <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
+                <h2 class="text-xl font-bold">📅 날짜별 복무 현황</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color duty-41"></div>
+                        <span>41조</span>
                     </div>
-                    <div class="drop-zone" id="drop-work" data-type="work">
-                        <div class="drop-icon">🏢</div>
-                        <div class="drop-label">근무</div>
+                    <div class="legend-item">
+                        <div class="legend-color duty-work"></div>
+                        <span>근무</span>
                     </div>
-                    <div class="drop-zone" id="drop-business" data-type="business">
-                        <div class="drop-icon">✈️</div>
-                        <div class="drop-label">출장</div>
+                    <div class="legend-item">
+                        <div class="legend-color duty-business"></div>
+                        <span>출장</span>
                     </div>
-                    <div class="drop-zone" id="drop-vacation" data-type="vacation">
-                        <div class="drop-icon">🏖️</div>
-                        <div class="drop-label">연가</div>
+                    <div class="legend-item">
+                        <div class="legend-color duty-vacation"></div>
+                        <span>연가</span>
                     </div>
-                    <div class="drop-zone" id="drop-overseas" data-type="overseas">
-                        <div class="drop-icon">🌍</div>
-                        <div class="drop-label">국외연수</div>
+                    <div class="legend-item">
+                        <div class="legend-color duty-overseas"></div>
+                        <span>국외</span>
                     </div>
-                </div>
-
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-                    <button class="btn" onclick="showTravelWizard()" style="background: #6f42c1; font-size: 13px; padding: 10px 8px;">
-                        ✈️ 해외여행 도우미
-                    </button>
+                    <button onclick="deleteSelectedTeachers()" style="padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 10px;">🗑️ 선택 삭제</button>
                 </div>
             </div>
 
-            <!-- 제어 패널 -->
-            <div class="control-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 class="text-xl font-bold">📋 결재 상신 정보</h2>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn" onclick="generateApprovalInfo()" style="padding: 10px 12px !important; font-size: 12px !important; width: auto !important;">📋 결재 정보 생성</button>
-                        <button class="btn" onclick="sendToFirebase()" style="padding: 10px 12px !important; font-size: 12px !important; width: auto !important; background: #28a745;">📤 전송</button>
-                    </div>
-                </div>
-
-                <!-- 결재 정보 -->
-                <div class="form-section" id="approval-section">
-
-                    <!-- 라인 1: 본인 ▶ 미래교육연구부장 ▶ 교감 ▶ 교장 -->
-                    <div id="approval-line1" class="approval-line">
-                        <h4 style="font-weight: bold; margin-bottom: 10px; color: #2196F3;">📋 라인 1: 본인 ▶ 미래교육연구부장 ▶ 교감 ▶ 교장</h4>
-                        <div class="approval-box">
-                            <div id="approval-content1" class="approval-details">결재 정보 생성 버튼을 눌러주세요.</div>
-                        </div>
-                    </div>
-
-                    <!-- 라인 2: 본인 ▶ 교무기획부장 ▶ 교감 ▶ 교장 -->
-                    <div id="approval-line2" class="approval-line" style="margin-top: 20px;">
-                        <h4 style="font-weight: bold; margin-bottom: 10px; color: #FF9800;">📋 라인 2: 본인 ▶ 교무기획부장 ▶ 교감 ▶ 교장</h4>
-                        <div class="approval-box">
-                            <div id="approval-content2" class="approval-details">결재 정보 생성 버튼을 눌러주세요.</div>
-                        </div>
-                    </div>
-
-                    <!-- 생성된 사유 (해외여행 도우미) -->
-                    <div id="reason-section" class="approval-line" style="margin-top: 20px; display: none;">
-                        <h4 style="font-weight: bold; margin-bottom: 10px; color: #6f42c1;">✈️ 생성된 사유 (해외여행 도우미)</h4>
-                        <div class="approval-box">
-                            <div style="display: flex; gap: 8px; align-items: flex-start;">
-                                <textarea id="main-generated-reason" readonly style="flex: 1; min-height: 60px; background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; resize: vertical;"></textarea>
-                                <button class="btn btn-secondary" onclick="copyMainReason()" style="width: auto; padding: 10px 12px; font-size: 12px;">📋 복사</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- 미세조정 모달 -->
-    <div id="detail-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-date-title">날짜별 세부 복무 설정</h3>
-                <span class="close" onclick="closeDetailModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="time-slots" id="time-slots-container">
-                    <!-- 시간 슬롯들이 동적으로 추가됩니다 -->
-                </div>
-                <div class="add-time-slot">
-                    <button class="btn btn-secondary" onclick="addTimeSlot()">+ 시간 추가</button>
-                </div>
-                <div class="modal-actions">
-                    <button class="btn" onclick="saveDetailSettings()">저장</button>
-                    <button class="btn btn-secondary" onclick="closeDetailModal()">취소</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 해외여행 위저드 모달 -->
-    <div id="travel-wizard-modal" class="modal" style="display: none;">
-        <div class="modal-content" style="width: 500px; max-width: 95%;">
-            <div class="modal-header">
-                <h3 id="wizard-title">해외여행 도우미 - 1단계</h3>
-                <span class="close" onclick="closeTravelWizard()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <!-- 1단계: 여행 기간 설정 -->
-                <div id="wizard-step1" class="wizard-step">
-                    <h4 style="margin-bottom: 15px; color: #6f42c1;">📅 여행 기간을 입력해주세요</h4>
-
-                    <div class="form-group">
-                        <label>출국 일시</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="date" id="departure-date" style="flex: 1;">
-                            <input type="time" id="departure-time" value="22:00" style="flex: 1;">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>입국 일시</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="date" id="arrival-date" style="flex: 1;">
-                            <input type="time" id="arrival-time" value="05:00" style="flex: 1;">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>여행 목적지</label>
-                        <input type="text" id="travel-destination" placeholder="예: 베트남, 일본, 태국">
-                    </div>
-
-                    <div class="modal-actions">
-                        <button class="btn" onclick="goToStep2()">다음 단계 →</button>
-                    </div>
-                </div>
-
-                <!-- 2단계: 복무 유형 선택 -->
-                <div id="wizard-step2" class="wizard-step" style="display: none;">
-                    <h4 style="margin-bottom: 15px; color: #6f42c1;">📋 복무 유형을 선택해주세요</h4>
-
-                    <div style="display: grid; gap: 15px;">
-                        <div class="duty-option" onclick="selectDutyType('vacation')" style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 24px;">🏖️</span>
-                                <div>
-                                    <div style="font-weight: bold; font-size: 16px;">연가</div>
-                                    <div style="font-size: 12px; color: #666;">개인 여행, 가족 여행</div>
-                                    <div style="font-size: 11px; color: #999;">결재라인: 본인 → 교무기획부장 → 교감 → 교장</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="duty-option" onclick="selectDutyType('overseas')" style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 24px;">🌍</span>
-                                <div>
-                                    <div style="font-weight: bold; font-size: 16px;">국외자율연수</div>
-                                    <div style="font-size: 12px; color: #666;">교과 관련 연수, 교육 자료 수집</div>
-                                    <div style="font-size: 11px; color: #999;">결재라인: 본인 → 미래교육연구부장 → 교감 → 교장</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="goToStep1()">← 이전</button>
-                        <button class="btn" onclick="goToStep3()" id="next-step2" disabled>다음 단계 →</button>
-                    </div>
-                </div>
-
-                <!-- 3단계: 자동 계산 및 확인 -->
-                <div id="wizard-step3" class="wizard-step" style="display: none;">
-                    <h4 style="margin-bottom: 15px; color: #6f42c1;">✅ 계산 결과 및 확인</h4>
-
-                    <div id="calculation-result" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <!-- 계산 결과가 여기에 표시됩니다 -->
-                    </div>
-
-                    <div class="form-group">
-                        <label>생성된 사유</label>
-                        <div style="display: flex; gap: 5px;">
-                            <textarea id="generated-reason" readonly style="flex: 1; min-height: 60px; background: #f8f9fa;"></textarea>
-                            <button class="btn btn-secondary" onclick="copyReason()" style="width: auto; padding: 8px 12px; font-size: 12px;">복사</button>
-                        </div>
-                    </div>
-
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="goToStep2()">← 이전</button>
-                        <button class="btn" onclick="applyTravelSchedule()" style="background: #28a745;">적용하기</button>
+            <div class="scroll-container">
+                <div id="main-grid" class="date-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>데이터를 불러오는 중...</div>
                     </div>
                 </div>
             </div>
@@ -964,11 +475,702 @@
             </div>
             <div style="display: flex; gap: 12px;">
                 <button onclick="saveFirebaseSettings()" style="flex: 1; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white;">설정 저장</button>
-                <button onclick="clearFirebaseSettings()" style="flex: 1; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; background: #ef4444; color: white;">설정 삭제</button>
+                <button onclick="closeFirebaseModal()" style="flex: 1; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; background: #6c757d; color: white;">취소</button>
             </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script>
+        class AdminDashboard {
+            constructor() {
+                this.firebaseEnabled = false;
+                this.database = null;
+                this.vacationStart = new Date(2026, 0, 9); // 2026년 1월 9일
+                this.vacationEnd = new Date(2026, 1, 28);   // 2026년 2월 28일
+                this.holidays = [
+                    new Date(2026, 0, 1),  // 신정
+                    new Date(2026, 1, 16), // 설날 전날
+                    new Date(2026, 1, 17), // 설날
+                    new Date(2026, 1, 18)  // 설날 다음날
+                ];
+                this.allSettings = {};
+                this.teachers = new Map();
+                this.departments = [
+                    '교무기획부',
+                    '미래교육연구부',
+                    '생활안전인권부',
+                    '진로상담부',
+                    '학생자치부',
+                    '과학정보부',
+                    '인문복지부',
+                    '교육과정부',
+                    '문화예술체육부',
+                    '1학년부',
+                    '2학년부',
+                    '3학년부'
+                ];
+
+                this.initFirebase();
+            }
+
+            initFirebase() {
+                try {
+                    // localStorage에서 설정 불러오기
+                    const apiKey = localStorage.getItem('firebase_apiKey');
+                    const projectId = localStorage.getItem('firebase_projectId');
+
+                    if (!apiKey || !projectId) {
+                        console.warn('Firebase 설정 없음 - 테스트 데이터 사용');
+                        this.firebaseEnabled = false;
+                        this.updateFirebaseStatus(false);
+                        this.loadTestData();
+                        return;
+                    }
+
+                    const firebaseConfig = {
+                        apiKey: apiKey,
+                        authDomain: `${projectId}.firebaseapp.com`,
+                        databaseURL: `https://${projectId}-default-rtdb.asia-southeast1.firebasedatabase.app`,
+                        projectId: projectId,
+                        storageBucket: `${projectId}.firebasestorage.app`,
+                        messagingSenderId: "383693605457",
+                        appId: "1:383693605457:web:b5c75a08b0fcef08188670"
+                    };
+
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(firebaseConfig);
+                    }
+                    this.database = firebase.database();
+
+                    // 연결 테스트
+                    this.database.ref('.info/connected').on('value', (snapshot) => {
+                        if (snapshot.val() === true) {
+                            console.log('✅ Firebase 연결 성공');
+                            this.firebaseEnabled = true;
+                            this.updateFirebaseStatus(true);
+                            this.loadFromFirebase();
+                        } else {
+                            console.log('❌ Firebase 연결 끊어짐');
+                            this.firebaseEnabled = false;
+                            this.updateFirebaseStatus(false);
+                        }
+                    });
+
+                } catch (error) {
+                    console.warn('Firebase 초기화 실패:', error);
+                    this.firebaseEnabled = false;
+                    this.updateFirebaseStatus(false);
+                    this.loadTestData();
+                }
+            }
+
+            loadFromFirebase() {
+                if (!this.firebaseEnabled || !this.database) return;
+
+                const vacationDutyRef = this.database.ref('vacation-duty');
+
+                // 실시간 동기화
+                vacationDutyRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        this.allSettings = data;
+                        console.log('Firebase 데이터 로드:', Object.keys(data).length, '명');
+                        this.updateDisplay();
+                    } else {
+                        console.log('Firebase 데이터 없음');
+                        this.loadTestData();
+                    }
+                });
+            }
+
+            updateFirebaseStatus(connected) {
+                const statusElement = document.getElementById('firebase-status');
+                if (connected) {
+                    statusElement.textContent = '🟢 Firebase 연결됨';
+                    statusElement.className = 'firebase-status firebase-connected';
+                } else {
+                    statusElement.textContent = '🔴 Firebase 연결 안됨';
+                    statusElement.className = 'firebase-status firebase-disconnected';
+                }
+            }
+
+            loadTestData() {
+                // 테스트용 데이터 5명의 가상 교사
+                this.allSettings = {
+                    '김철수_교무기획부': {
+                        name: '김철수',
+                        department: '교무기획부',
+                        dutySchedule: {
+                            '2026-01-09': '41',
+                            '2026-01-10': 'vacation',
+                            '2026-01-11': 'work',        // 토요일
+                            '2026-01-12': 'business',    // 일요일
+                            '2026-01-13': 'vacation',
+                            '2026-01-14': 'overseas',
+                            '2026-01-15': 'mixed',       // 혼합 복무
+                            '2026-01-16': '41',
+                            '2026-01-17': 'mixed',       // 혼합 복무
+                            '2026-01-18': 'work',        // 토요일
+                            '2026-01-19': 'vacation',    // 일요일
+                            '2026-01-20': 'business',
+                            '2026-01-21': 'business'
+                        },
+                        detailSchedule: {
+                            '2026-01-15': [
+                                { start: '08:40', end: '12:00', type: '41' },
+                                { start: '13:00', end: '16:40', type: 'business' }
+                            ],
+                            '2026-01-17': [
+                                { start: '08:40', end: '10:00', type: 'vacation' },
+                                { start: '10:00', end: '16:40', type: 'overseas' }
+                            ]
+                        }
+                    },
+                    '이영희_미래교육연구부': {
+                        name: '이영희',
+                        department: '미래교육연구부',
+                        dutySchedule: {
+                            '2026-01-09': 'business',
+                            '2026-01-10': 'business',
+                            '2026-01-11': 'overseas',    // 토요일
+                            '2026-01-12': 'work',        // 일요일
+                            '2026-01-13': '41',
+                            '2026-01-14': '41',
+                            '2026-01-15': 'work',
+                            '2026-01-16': 'work',
+                            '2026-01-18': 'business',    // 토요일
+                            '2026-01-19': 'vacation',    // 일요일
+                            '2026-01-20': 'vacation',
+                            '2026-01-21': 'vacation'
+                        }
+                    },
+                    '박민수_교무기획부': {
+                        name: '박민수',
+                        department: '교무기획부',
+                        dutySchedule: {
+                            '2026-01-09': '41',
+                            '2026-01-10': '41',
+                            '2026-01-11': 'vacation',    // 토요일
+                            '2026-01-12': 'overseas',    // 일요일
+                            '2026-01-13': 'work',
+                            '2026-01-14': 'mixed',       // 혼합 복무 (3개 유형)
+                            '2026-01-15': '41',
+                            '2026-01-16': 'overseas',
+                            '2026-01-18': 'overseas',    // 토요일
+                            '2026-01-19': 'business',    // 일요일
+                            '2026-01-20': 'overseas',
+                            '2026-01-21': '41'
+                        },
+                        detailSchedule: {
+                            '2026-01-14': [
+                                { start: '08:40', end: '10:30', type: 'vacation' },
+                                { start: '10:30', end: '14:00', type: '41' },
+                                { start: '14:00', end: '16:40', type: 'work' }
+                            ]
+                        }
+                    },
+                    '최지수_1학년부': {
+                        name: '최지수',
+                        department: '1학년부',
+                        dutySchedule: {
+                            '2026-01-09': 'overseas',
+                            '2026-01-10': 'overseas',
+                            '2026-01-11': '41',          // 토요일
+                            '2026-01-12': 'vacation',    // 일요일
+                            '2026-01-13': 'overseas',
+                            '2026-01-14': '41',
+                            '2026-01-15': '41',
+                            '2026-01-16': 'business',
+                            '2026-01-18': 'vacation',    // 토요일
+                            '2026-01-19': 'work',        // 일요일
+                            '2026-01-20': 'work',
+                            '2026-01-21': 'vacation'
+                        }
+                    },
+                    '정미경_2학년부': {
+                        name: '정미경',
+                        department: '2학년부',
+                        dutySchedule: {
+                            '2026-01-09': 'work',
+                            '2026-01-10': 'work',
+                            '2026-01-11': 'business',    // 토요일
+                            '2026-01-12': '41',          // 일요일
+                            '2026-01-13': 'business',
+                            '2026-01-14': 'business',
+                            '2026-01-15': 'vacation',
+                            '2026-01-16': 'vacation',
+                            '2026-01-18': 'overseas',    // 토요일
+                            '2026-01-19': 'overseas',    // 일요일
+                            '2026-01-20': '41',
+                            '2026-01-21': '41'
+                        }
+                    }
+                };
+
+                console.log('교사 5명 데이터 로드 완료');
+                this.generateMainGrid();
+                this.updateDisplay();
+            }
+
+            generateMainGrid() {
+                const grid = document.getElementById('main-grid');
+
+                // 날짜 헤더 생성
+                let html = this.generateDateHeader();
+                grid.innerHTML = html;
+            }
+
+            getSafeId(department) {
+                return department.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+            }
+
+            generateDateHeader() {
+                const dates = this.getVacationDates();
+                let html = '<div class="teacher-name">교사명</div>';
+
+                dates.forEach(date => {
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                    const isHoliday = this.isHoliday(date);
+                    const day = date.getDate();
+                    const dayName = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+
+                    const cssClass = isHoliday ? 'holiday' : (isWeekend ? 'weekend' : '');
+
+                    html += `
+                        <div class="date-cell ${cssClass}">
+                            <div class="date-number">${day}</div>
+                            <div class="date-day">${dayName}</div>
+                        </div>
+                    `;
+                });
+
+                return html;
+            }
+
+            getVacationDates() {
+                const dates = [];
+                const current = new Date(this.vacationStart);
+
+                while (current <= this.vacationEnd) {
+                    dates.push(new Date(current));
+                    current.setDate(current.getDate() + 1);
+                }
+
+                return dates;
+            }
+
+            isHoliday(date) {
+                return this.holidays.some(holiday =>
+                    holiday.toDateString() === date.toDateString()
+                );
+            }
+
+            updateDisplay() {
+                this.updateDateGrid();
+                document.getElementById('last-updated').textContent =
+                    `마지막 업데이트: ${new Date().toLocaleString()}`;
+            }
+
+            updateDateGrid() {
+                const grid = document.getElementById('main-grid');
+                const dates = this.getVacationDates();
+
+                console.log('업데이트 시작, 교사 수:', Object.keys(this.allSettings).length);
+                console.log('날짜 수:', dates.length);
+
+                // 날짜 헤더로 시작
+                let html = this.generateDateHeader();
+
+                // 모든 교사 표시 (부서 구분 없이)
+                Object.keys(this.allSettings).forEach((teacherKey, index) => {
+                    const teacherData = this.allSettings[teacherKey];
+                    console.log(`교사 ${index + 1}: ${teacherData.name}`);
+                    html += `
+                        <div class="teacher-name">
+                            <div class="teacher-info">
+                                <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+                                    <input type="checkbox" class="delete-checkbox" data-teacher-key="${teacherKey}" style="width: 14px; height: 14px; cursor: pointer;">
+                                    <span style="flex: 1;">${teacherData.name}</span>
+                                </div>
+                                <div class="teacher-checkboxes">
+                                    <div class="checkbox-row">
+                                        <input type="checkbox" id="dept-${index}" onchange="handleAdminCheck(${index}, this.checked)">
+                                        <label for="dept-${index}">교무</label>
+                                    </div>
+                                    <div class="checkbox-row">
+                                        <input type="checkbox" id="research-${index}" onchange="handleResearchCheck(${index}, this.checked)">
+                                        <label for="research-${index}">연구</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    dates.forEach((date, dateIndex) => {
+                        const dateString = this.formatDateForStorage(date);
+                        const schedule = teacherData.dutySchedule || {};
+                        const detailSchedule = teacherData.detailSchedule || {};
+
+                        const dutyType = schedule[dateString];
+                        const detailInfo = detailSchedule[dateString];
+
+                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                        const isHoliday = this.isHoliday(date);
+
+                        const cellId = `cell-${index}-${dateIndex}`;
+
+                        // 세부 시간 정보가 있는 경우 혼합 복무 체크
+                        if (detailInfo && detailInfo.length > 0) {
+                            const dutyTypes = [...new Set(detailInfo.map(slot => slot.type))]; // 중복 제거
+
+                            if (dutyTypes.length === 1) {
+                                // 단일 복무 유형
+                                const singleType = dutyTypes[0];
+                                const typeName = this.getDutyTypeName(singleType);
+                                html += `<div id="${cellId}" class="duty-cell duty-${singleType}" data-teacher="${index}" data-duty="${singleType}">${typeName}</div>`;
+                            } else if (dutyTypes.length > 1) {
+                                // 혼합 복무 유형
+                                html += this.createMixedDutyCell(dutyTypes, cellId, index);
+                            }
+                        } else if (dutyType) {
+                            // 기본 복무 유형이 있는 경우 (주말/공휴일 관계없이 표시)
+                            const typeName = this.getDutyTypeName(dutyType);
+                            html += `<div id="${cellId}" class="duty-cell duty-${dutyType}" data-teacher="${index}" data-duty="${dutyType}">${typeName}</div>`;
+                        } else if (isHoliday || isWeekend) {
+                            // 복무 데이터가 없는 주말이나 공휴일
+                            const cssClass = isHoliday ? 'holiday' : 'weekend';
+                            html += `<div id="${cellId}" class="date-cell ${cssClass}" data-teacher="${index}"></div>`;
+                        } else {
+                            // 평일인데 복무 데이터가 없으면 기본 41조
+                            html += `<div id="${cellId}" class="duty-cell duty-41" data-teacher="${index}" data-duty="41">41조</div>`;
+                        }
+                    });
+                });
+
+                console.log('HTML 길이:', html.length);
+                grid.innerHTML = html;
+                console.log('그리드 업데이트 완료');
+            }
+
+            groupTeachersByDepartment() {
+                const grouped = {};
+
+                // 모든 부서 초기화
+                this.departments.forEach(dept => {
+                    grouped[dept] = [];
+                });
+
+                // 교사별로 부서에 배정
+                Object.values(this.allSettings).forEach(teacherData => {
+                    const department = teacherData.department;
+                    if (department && grouped[department]) {
+                        grouped[department].push(teacherData);
+                    }
+                });
+
+                return grouped;
+            }
+
+            formatDateForStorage(date) {
+                return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+            }
+
+            getDutyTypeName(type) {
+                const types = {
+                    '41': '41조',
+                    'work': '근무',
+                    'business': '출장',
+                    'vacation': '연가',
+                    'overseas': '국외'
+                };
+                return types[type] || '41조';
+            }
+
+            // 혼합 복무 처리 함수
+            createMixedDutyCell(dutyTypes, cellId, teacherIndex) {
+                const sortedTypes = dutyTypes.sort();
+                const typeNames = sortedTypes.map(type => this.getDutyTypeName(type)).join('+');
+
+                const cell = document.createElement('div');
+                cell.id = cellId;
+                cell.className = 'duty-cell duty-mixed';
+                cell.setAttribute('data-teacher', teacherIndex);
+                cell.setAttribute('data-duty', 'mixed');
+                cell.setAttribute('data-mixed-types', sortedTypes.join(','));
+
+                // 대각선 분할 스타일 적용
+                this.applyDiagonalSplit(cell, sortedTypes);
+
+                // 텍스트 추가
+                const label = document.createElement('div');
+                label.className = 'mixed-duty-label';
+                label.textContent = typeNames;
+                this.applyDiagonalSplitToText(label, sortedTypes);
+                cell.appendChild(label);
+
+                return cell.outerHTML;
+            }
+
+            // 대각선 분할 스타일 적용 (index.html에서 가져온 로직)
+            applyDiagonalSplit(element, dutyTypes) {
+                const colorMap = {
+                    '41': 'rgba(76, 175, 80, 0.3)',
+                    'work': 'rgba(33, 150, 243, 0.3)',
+                    'business': 'rgba(255, 152, 0, 0.3)',
+                    'vacation': 'rgba(244, 67, 54, 0.3)',
+                    'overseas': 'rgba(156, 39, 176, 0.3)'
+                };
+
+                const borderMap = {
+                    '41': '#4CAF50',
+                    'work': '#2196F3',
+                    'business': '#FF9800',
+                    'vacation': '#F44336',
+                    'overseas': '#9C27B0'
+                };
+
+                if (dutyTypes.length === 2) {
+                    // 2개 유형 - 대각선 분할
+                    const color1 = colorMap[dutyTypes[0]] || 'rgba(200, 200, 200, 0.3)';
+                    const color2 = colorMap[dutyTypes[1]] || 'rgba(200, 200, 200, 0.3)';
+                    const border1 = borderMap[dutyTypes[0]] || '#ccc';
+                    const border2 = borderMap[dutyTypes[1]] || '#ccc';
+
+                    element.style.background = `linear-gradient(45deg, ${color1} 50%, ${color2} 50%)`;
+                    element.style.border = `3px solid`;
+                    element.style.borderImage = `linear-gradient(45deg, ${border1} 50%, ${border2} 50%) 1`;
+                } else if (dutyTypes.length === 3) {
+                    // 3개 유형 - 삼등분
+                    const color1 = colorMap[dutyTypes[0]] || 'rgba(200, 200, 200, 0.3)';
+                    const color2 = colorMap[dutyTypes[1]] || 'rgba(200, 200, 200, 0.3)';
+                    const color3 = colorMap[dutyTypes[2]] || 'rgba(200, 200, 200, 0.3)';
+                    const border1 = borderMap[dutyTypes[0]] || '#ccc';
+                    const border2 = borderMap[dutyTypes[1]] || '#ccc';
+                    const border3 = borderMap[dutyTypes[2]] || '#ccc';
+
+                    element.style.background = `linear-gradient(45deg, ${color1} 33%, ${color2} 33%, ${color2} 66%, ${color3} 66%)`;
+                    element.style.border = `3px solid`;
+                    element.style.borderImage = `linear-gradient(45deg, ${border1} 33%, ${border2} 33%, ${border2} 66%, ${border3} 66%) 1`;
+                } else {
+                    // 4개 이상 - 체크무늬 패턴
+                    const color1 = colorMap[dutyTypes[0]] || 'rgba(200, 200, 200, 0.3)';
+                    const color2 = colorMap[dutyTypes[1]] || 'rgba(200, 200, 200, 0.3)';
+                    const border1 = borderMap[dutyTypes[0]] || '#ccc';
+                    const border2 = borderMap[dutyTypes[1]] || '#ccc';
+
+                    element.style.background = `
+                        repeating-linear-gradient(
+                            45deg,
+                            ${color1},
+                            ${color1} 10px,
+                            ${color2} 10px,
+                            ${color2} 20px
+                        )
+                    `;
+                    element.style.border = `3px solid`;
+                    element.style.borderImage = `repeating-linear-gradient(45deg, ${border1}, ${border1} 5px, ${border2} 5px, ${border2} 10px) 1`;
+                }
+            }
+
+            // 텍스트에 대각선 분할 스타일 적용
+            applyDiagonalSplitToText(textElement, dutyTypes) {
+                const colorMap = {
+                    '41': 'rgba(76, 175, 80, 0.9)',
+                    'work': 'rgba(33, 150, 243, 0.9)',
+                    'business': 'rgba(255, 152, 0, 0.9)',
+                    'vacation': 'rgba(244, 67, 54, 0.9)',
+                    'overseas': 'rgba(156, 39, 176, 0.9)'
+                };
+
+                if (dutyTypes.length === 2) {
+                    const color1 = colorMap[dutyTypes[0]] || 'rgba(100, 100, 100, 0.9)';
+                    const color2 = colorMap[dutyTypes[1]] || 'rgba(100, 100, 100, 0.9)';
+
+                    textElement.style.background = `linear-gradient(45deg, ${color1} 50%, ${color2} 50%)`;
+                    textElement.style.color = 'white';
+                    textElement.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+                } else if (dutyTypes.length === 3) {
+                    const color1 = colorMap[dutyTypes[0]] || 'rgba(100, 100, 100, 0.9)';
+                    const color2 = colorMap[dutyTypes[1]] || 'rgba(100, 100, 100, 0.9)';
+                    const color3 = colorMap[dutyTypes[2]] || 'rgba(100, 100, 100, 0.9)';
+
+                    textElement.style.background = `linear-gradient(45deg, ${color1} 33%, ${color2} 33%, ${color2} 66%, ${color3} 66%)`;
+                    textElement.style.color = 'white';
+                    textElement.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+                } else {
+                    const color1 = colorMap[dutyTypes[0]] || 'rgba(100, 100, 100, 0.9)';
+                    const color2 = colorMap[dutyTypes[1]] || 'rgba(100, 100, 100, 0.9)';
+
+                    textElement.style.background = `
+                        repeating-linear-gradient(
+                            45deg,
+                            ${color1},
+                            ${color1} 5px,
+                            ${color2} 5px,
+                            ${color2} 10px
+                        )
+                    `;
+                    textElement.style.color = 'white';
+                    textElement.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+                }
+            }
+        }
+
+        // 전역 인스턴스
+        let adminDashboard;
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', () => {
+            adminDashboard = new AdminDashboard();
+        });
+
+        // 전역 함수들
+        function refreshData() {
+            adminDashboard.updateDisplay();
+        }
+
+        // 교무부장 체크박스 핸들러 (연가, 출장 빗금 처리)
+        function handleAdminCheck(teacherIndex, isChecked) {
+            const cells = document.querySelectorAll(`[data-teacher="${teacherIndex}"]`);
+
+            cells.forEach(cell => {
+                const dutyType = cell.getAttribute('data-duty');
+                const mixedTypes = cell.getAttribute('data-mixed-types');
+
+                // 단일 복무 유형 처리
+                if (dutyType === 'vacation' || dutyType === 'business') {
+                    if (isChecked) {
+                        cell.classList.add('checked-by-admin');
+                    } else {
+                        cell.classList.remove('checked-by-admin');
+                    }
+                }
+
+                // 혼합 복무 유형 처리
+                if (dutyType === 'mixed' && mixedTypes) {
+                    const typesArray = mixedTypes.split(',');
+                    const hasAdminTypes = typesArray.some(type => type === 'vacation' || type === 'business');
+
+                    if (hasAdminTypes) {
+                        if (isChecked) {
+                            cell.classList.add('checked-by-admin');
+                        } else {
+                            cell.classList.remove('checked-by-admin');
+                        }
+                    }
+                }
+            });
+        }
+
+        // 연구부장 체크박스 핸들러 (41조, 국외연수 빗금 처리)
+        function handleResearchCheck(teacherIndex, isChecked) {
+            const cells = document.querySelectorAll(`[data-teacher="${teacherIndex}"]`);
+
+            cells.forEach(cell => {
+                const dutyType = cell.getAttribute('data-duty');
+                const mixedTypes = cell.getAttribute('data-mixed-types');
+
+                // 단일 복무 유형 처리
+                if (dutyType === '41' || dutyType === 'overseas') {
+                    if (isChecked) {
+                        cell.classList.add('checked-by-research');
+                    } else {
+                        cell.classList.remove('checked-by-research');
+                    }
+                }
+
+                // 혼합 복무 유형 처리
+                if (dutyType === 'mixed' && mixedTypes) {
+                    const typesArray = mixedTypes.split(',');
+                    const hasResearchTypes = typesArray.some(type => type === '41' || type === 'overseas');
+
+                    if (hasResearchTypes) {
+                        if (isChecked) {
+                            cell.classList.add('checked-by-research');
+                        } else {
+                            cell.classList.remove('checked-by-research');
+                        }
+                    }
+                }
+            });
+        }
+
+        // Firebase 설정 함수들
+        function showFirebaseSettings() {
+            const modal = document.getElementById('firebaseModal');
+            modal.style.display = 'flex';
+
+            const apiKey = localStorage.getItem('firebase_apiKey');
+            const projectId = localStorage.getItem('firebase_projectId');
+            const savedSettingsInfo = document.getElementById('savedSettingsInfo');
+
+            if (apiKey && projectId) {
+                document.getElementById('firebaseApiKey').value = apiKey;
+                document.getElementById('firebaseProjectId').value = projectId;
+                savedSettingsInfo.style.display = 'block';
+            } else {
+                savedSettingsInfo.style.display = 'none';
+            }
+        }
+
+        function saveFirebaseSettings() {
+            const apiKey = document.getElementById('firebaseApiKey').value.trim();
+            const projectId = document.getElementById('firebaseProjectId').value.trim();
+
+            if (!apiKey || !projectId) {
+                alert('API Key와 Project ID를 모두 입력해주세요.');
+                return;
+            }
+
+            localStorage.setItem('firebase_apiKey', apiKey);
+            localStorage.setItem('firebase_projectId', projectId);
+
+            document.getElementById('firebaseModal').style.display = 'none';
+            alert('Firebase 설정이 저장되었습니다!\n페이지를 새로고침합니다.');
+            location.reload();
+        }
+
+        function closeFirebaseModal() {
+            document.getElementById('firebaseModal').style.display = 'none';
+        }
+
+        // 선택된 교사 일괄 삭제
+        function deleteSelectedTeachers() {
+            if (!adminDashboard) return;
+
+            const checkboxes = document.querySelectorAll('.delete-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('삭제할 교사를 선택해주세요.');
+                return;
+            }
+
+            const teacherKeys = Array.from(checkboxes).map(cb => cb.getAttribute('data-teacher-key'));
+            const teacherNames = teacherKeys.map(key => adminDashboard.allSettings[key]?.name).filter(Boolean);
+
+            if (!confirm('다음 교사들의 데이터를 삭제하시겠습니까?\n\n' + teacherNames.join(', ') + '\n\n이 작업은 되돌릴 수 없습니다.')) {
+                return;
+            }
+
+            if (!adminDashboard.firebaseEnabled || !adminDashboard.database) {
+                alert('Firebase에 연결되어 있지 않습니다.\n삭제하려면 Firebase 설정을 완료해주세요.');
+                return;
+            }
+
+            // Firebase에서 일괄 삭제
+            const deletePromises = teacherKeys.map(key =>
+                adminDashboard.database.ref('vacation-duty/' + key).remove()
+            );
+
+            Promise.all(deletePromises)
+                .then(() => {
+                    console.log('일괄 삭제 완료:', teacherKeys.length + '명');
+                    alert(teacherKeys.length + '명의 교사 데이터가 삭제되었습니다.');
+                })
+                .catch((error) => {
+                    console.error('삭제 실패:', error);
+                    alert('데이터 삭제에 실패했습니다.\n\n' + error.message);
+                });
+        }
+    </script>
 </body>
 </html>
