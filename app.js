@@ -295,31 +295,33 @@ class VacationDutyManager {
                     dayElement.appendChild(dutyElement);
                 } else {
                     // 세부 시간 정보가 있는 경우
-                    const dutyTypes = [...new Set(detailInfo.map(slot => slot.type))]; // 중복 제거
+                    // 시간순으로 정렬된 슬롯의 복무 유형 (순서 유지, 중복 허용)
+                    const orderedSlots = detailInfo.sort((a, b) => a.start.localeCompare(b.start));
+                    const dutyTypes = orderedSlots.map(slot => slot.type);
+                    const uniqueTypes = [...new Set(dutyTypes)]; // 중복 제거는 표시용으로만
 
-                    if (dutyTypes.length === 1) {
+                    if (uniqueTypes.length === 1) {
                         // 단일 복무 유형
-                        const dutyType = dutyTypes[0];
+                        const dutyType = uniqueTypes[0];
                         dayElement.classList.add(`duty-${dutyType}`);
 
                         const dutyElement = document.createElement('div');
                         dutyElement.classList.add('duty-type', `type-${dutyType}`);
                         dutyElement.textContent = this.getDutyTypeName(dutyType);
                         dayElement.appendChild(dutyElement);
-                    } else if (dutyTypes.length > 1) {
-                        // 여러 복무 유형 - 대각선 분할
+                    } else {
+                        // 여러 복무 유형 - 시간 비율에 따라 분할
                         dayElement.classList.add('duty-mixed');
-                        dayElement.classList.add(`duty-mixed-${dutyTypes.sort().join('-')}`);
 
-                        // 첫 번째와 두 번째 유형의 색상으로 대각선 분할
-                        this.applyDiagonalSplit(dayElement, dutyTypes);
+                        // 시간 비율 계산하여 그라디언트 적용
+                        this.applyTimeBasedSplit(dayElement, orderedSlots);
 
                         const dutyElement = document.createElement('div');
                         dutyElement.classList.add('duty-type', 'type-mixed');
-                        dutyElement.textContent = dutyTypes.map(type => this.getDutyTypeName(type)).join('+');
+                        dutyElement.textContent = uniqueTypes.map(type => this.getDutyTypeName(type)).join('+');
 
-                        // 텍스트 박스도 같은 대각선 패턴 적용
-                        this.applyDiagonalSplitToText(dutyElement, dutyTypes);
+                        // 텍스트 박스도 같은 패턴 적용
+                        this.applyTimeBasedSplitToText(dutyElement, orderedSlots);
 
                         dayElement.appendChild(dutyElement);
                     }
@@ -354,6 +356,109 @@ class VacationDutyManager {
         }
 
         return dayElement;
+    }
+
+    // 시간 비율 기반 분할 스타일 적용
+    applyTimeBasedSplit(dayElement, orderedSlots) {
+        const colorMap = {
+            '41': 'rgba(76, 175, 80, 0.3)',
+            'work': 'rgba(33, 150, 243, 0.3)',
+            'business': 'rgba(255, 152, 0, 0.3)',
+            'vacation': 'rgba(244, 67, 54, 0.3)',
+            'overseas': 'rgba(156, 39, 176, 0.3)'
+        };
+
+        const borderMap = {
+            '41': '#4CAF50',
+            'work': '#2196F3',
+            'business': '#FF9800',
+            'vacation': '#F44336',
+            'overseas': '#9C27B0'
+        };
+
+        // 각 슬롯의 시간 비율 계산
+        const totalMinutes = orderedSlots.reduce((sum, slot) => {
+            const start = this.timeToMinutes(slot.start);
+            const end = this.timeToMinutes(slot.end);
+            return sum + (end - start);
+        }, 0);
+
+        let gradientParts = [];
+        let borderParts = [];
+        let currentPercent = 0;
+
+        orderedSlots.forEach((slot, index) => {
+            const start = this.timeToMinutes(slot.start);
+            const end = this.timeToMinutes(slot.end);
+            const duration = end - start;
+            const percent = (duration / totalMinutes) * 100;
+
+            const color = colorMap[slot.type] || 'rgba(200, 200, 200, 0.3)';
+            const border = borderMap[slot.type] || '#ccc';
+
+            const startPercent = currentPercent;
+            const endPercent = currentPercent + percent;
+
+            gradientParts.push(`${color} ${startPercent}%`);
+            gradientParts.push(`${color} ${endPercent}%`);
+
+            borderParts.push(`${border} ${startPercent}%`);
+            borderParts.push(`${border} ${endPercent}%`);
+
+            currentPercent = endPercent;
+        });
+
+        // 가로 줄무늬로 표시 (왼쪽에서 오른쪽)
+        dayElement.style.background = `linear-gradient(to right, ${gradientParts.join(', ')})`;
+        dayElement.style.border = `2px solid`;
+        dayElement.style.borderImage = `linear-gradient(to right, ${borderParts.join(', ')}) 1`;
+    }
+
+    // 텍스트 박스에 시간 비율 기반 분할 적용
+    applyTimeBasedSplitToText(textElement, orderedSlots) {
+        const colorMap = {
+            '41': 'rgba(76, 175, 80, 0.9)',
+            'work': 'rgba(33, 150, 243, 0.9)',
+            'business': 'rgba(255, 152, 0, 0.9)',
+            'vacation': 'rgba(244, 67, 54, 0.9)',
+            'overseas': 'rgba(156, 39, 176, 0.9)'
+        };
+
+        const totalMinutes = orderedSlots.reduce((sum, slot) => {
+            const start = this.timeToMinutes(slot.start);
+            const end = this.timeToMinutes(slot.end);
+            return sum + (end - start);
+        }, 0);
+
+        let gradientParts = [];
+        let currentPercent = 0;
+
+        orderedSlots.forEach(slot => {
+            const start = this.timeToMinutes(slot.start);
+            const end = this.timeToMinutes(slot.end);
+            const duration = end - start;
+            const percent = (duration / totalMinutes) * 100;
+
+            const color = colorMap[slot.type] || 'rgba(100, 100, 100, 0.9)';
+
+            const startPercent = currentPercent;
+            const endPercent = currentPercent + percent;
+
+            gradientParts.push(`${color} ${startPercent}%`);
+            gradientParts.push(`${color} ${endPercent}%`);
+
+            currentPercent = endPercent;
+        });
+
+        textElement.style.background = `linear-gradient(to right, ${gradientParts.join(', ')})`;
+        textElement.style.color = 'white';
+        textElement.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+    }
+
+    // 시간 문자열을 분 단위로 변환
+    timeToMinutes(timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
     }
 
     // 대각선 분할 스타일 적용
@@ -728,14 +833,13 @@ class VacationDutyManager {
         this.generateApprovalByLines(line1Groups, line2Groups, teacherName, teacherDepartment);
     }
 
-    // dutySchedule에서 연속 구간별로 그룹화
+    // dutySchedule에서 연속 구간별로 그룹화 (detailSchedule 반영)
     generateDutyGroups() {
         // 날짜별로 정렬
         const sortedEntries = Object.entries(this.dutySchedule)
             .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB));
 
-        const groups = [];
-        let currentGroup = null;
+        const segments = []; // 각 날짜의 시간 구간을 순서대로 저장
 
         sortedEntries.forEach(([dateString, dutyType]) => {
             const date = new Date(dateString);
@@ -745,15 +849,60 @@ class VacationDutyManager {
                 return;
             }
 
-            // 같은 타입이고 연속된 날짜면 그룹에 추가
-            if (currentGroup &&
-                this.isSameDutyType(currentGroup.type, dutyType) &&
-                this.isConsecutiveDayForGroup(currentGroup.endDate, date)) {
+            // detailSchedule 확인 - 시간별로 나뉜 경우
+            const detailInfo = this.detailSchedule?.[dateString];
 
-                // 기존 그룹에 추가
-                currentGroup.endDate = date;
-                currentGroup.dates.push(date);
-                currentGroup.dateStrings.push(dateString);
+            if (detailInfo && detailInfo.length > 0) {
+                // 미세조정된 날짜: 각 시간 슬롯을 별도 segment로 추가
+                detailInfo.forEach((slot, index) => {
+                    if (slot.type === 'work') return;
+
+                    segments.push({
+                        type: slot.type,
+                        date: date,
+                        dateString: dateString,
+                        startTime: slot.start,
+                        endTime: slot.end,
+                        isDetail: true,
+                        detailIndex: index // 같은 날짜 내 순서
+                    });
+                });
+            } else {
+                // 미세조정 없는 날짜: 전체 날짜를 하나의 segment로
+                segments.push({
+                    type: dutyType,
+                    date: date,
+                    dateString: dateString,
+                    startTime: '08:40',
+                    endTime: '16:40',
+                    isDetail: false
+                });
+            }
+        });
+
+        // segments를 그룹화
+        const groups = [];
+        let currentGroup = null;
+
+        segments.forEach((segment, index) => {
+            const prevSegment = index > 0 ? segments[index - 1] : null;
+
+            // 같은 유형이고 연속인지 확인
+            const canMerge = currentGroup &&
+                             currentGroup.type === segment.type &&
+                             this.canMergeSegments(currentGroup.lastSegment, segment);
+
+            if (canMerge) {
+                // 기존 그룹에 병합
+                currentGroup.endDate = segment.date;
+                currentGroup.endTime = segment.endTime;
+                currentGroup.lastSegment = segment;
+
+                // 날짜가 다르면 dates 배열에 추가
+                if (!currentGroup.dateStrings.includes(segment.dateString)) {
+                    currentGroup.dates.push(segment.date);
+                    currentGroup.dateStrings.push(segment.dateString);
+                }
             } else {
                 // 새 그룹 시작
                 if (currentGroup) {
@@ -761,11 +910,14 @@ class VacationDutyManager {
                 }
 
                 currentGroup = {
-                    type: dutyType,
-                    startDate: date,
-                    endDate: date,
-                    dates: [date],
-                    dateStrings: [dateString]
+                    type: segment.type,
+                    startDate: segment.date,
+                    endDate: segment.date,
+                    dates: [segment.date],
+                    dateStrings: [segment.dateString],
+                    startTime: segment.startTime,
+                    endTime: segment.endTime,
+                    lastSegment: segment
                 };
             }
         });
@@ -776,6 +928,24 @@ class VacationDutyManager {
         }
 
         return groups;
+    }
+
+    // 두 segment를 병합할 수 있는지 확인
+    canMergeSegments(prev, current) {
+        if (!prev) return false;
+
+        // 같은 날짜인 경우
+        if (prev.dateString === current.dateString) {
+            // 미세조정된 경우, 시간이 연속되는지 확인
+            if (prev.isDetail && current.isDetail) {
+                // 같은 날짜 내에서 바로 다음 슬롯인지 확인
+                return current.detailIndex === prev.detailIndex + 1;
+            }
+            return false;
+        }
+
+        // 다른 날짜인 경우, 날짜가 연속인지만 확인
+        return this.isConsecutiveDayForGroup(prev.date, current.date);
     }
 
     // 같은 복무 타입인지 확인
@@ -846,31 +1016,18 @@ class VacationDutyManager {
 
     // 그룹별 시간 정보 가져오기
     getTimeInfoForGroup(group) {
-        const startDateKey = this.formatDateForStorage(group.startDate);
-        const endDateKey = this.formatDateForStorage(group.endDate);
-
-        // 세부 시간 설정이 있는지 확인
-        const startDetails = this.detailSchedule?.[startDateKey];
-        const endDetails = this.detailSchedule?.[endDateKey];
-
-        let startTime = '08:40'; // 기본 시작 시간
-        let endTime = '16:40';   // 기본 종료 시간
-
-        // 시작일의 첫 번째 시간 슬롯의 시작 시간
-        if (startDetails && startDetails.length > 0) {
-            const firstSlot = startDetails.find(slot => slot.type === group.type) || startDetails[0];
-            startTime = firstSlot.start;
+        // 그룹에 이미 startTime, endTime이 있으면 그것 사용
+        if (group.startTime && group.endTime) {
+            return {
+                startTime: group.startTime,
+                endTime: group.endTime
+            };
         }
 
-        // 종료일의 마지막 시간 슬롯의 종료 시간
-        if (endDetails && endDetails.length > 0) {
-            const lastSlot = endDetails.filter(slot => slot.type === group.type).pop() || endDetails[endDetails.length - 1];
-            endTime = lastSlot.end;
-        }
-
+        // 없으면 기본값 사용 (하위 호환성)
         return {
-            startTime,
-            endTime
+            startTime: '08:40',
+            endTime: '16:40'
         };
     }
 
@@ -1077,8 +1234,8 @@ class VacationDutyManager {
         slotDiv.className = 'time-slot';
 
         slotDiv.innerHTML = `
-            <input type="time" class="time-input start-time" value="${startTime}">
-            <input type="time" class="time-input end-time" value="${endTime}">
+            <input type="text" class="time-input start-time" value="${startTime}" placeholder="08:40" maxlength="5">
+            <input type="text" class="time-input end-time" value="${endTime}" placeholder="16:40" maxlength="5">
             <select class="time-duty-type">
                 <option value="41" ${dutyType === '41' ? 'selected' : ''}>41조 연수</option>
                 <option value="work" ${dutyType === 'work' ? 'selected' : ''}>근무</option>
@@ -1088,6 +1245,40 @@ class VacationDutyManager {
             </select>
             <button class="delete-slot" onclick="removeTimeSlot(this)">×</button>
         `;
+
+        // 시간 입력 자동 포맷팅 추가
+        const startInput = slotDiv.querySelector('.start-time');
+        const endInput = slotDiv.querySelector('.end-time');
+
+        [startInput, endInput].forEach(input => {
+            input.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/[^0-9]/g, '');
+
+                if (value.length >= 3) {
+                    value = value.slice(0, 2) + ':' + value.slice(2, 4);
+                }
+
+                e.target.value = value;
+            });
+
+            input.addEventListener('blur', (e) => {
+                const value = e.target.value;
+                const match = value.match(/^(\d{1,2}):?(\d{0,2})$/);
+
+                if (match) {
+                    let hours = parseInt(match[1]) || 0;
+                    let minutes = match[2] ? parseInt(match[2]) : 0;
+
+                    hours = Math.min(23, Math.max(0, hours));
+                    minutes = Math.min(59, Math.max(0, minutes));
+
+                    e.target.value = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                } else if (value === '') {
+                    // 비어있으면 기본값 설정
+                    e.target.value = e.target.classList.contains('start-time') ? '08:40' : '16:40';
+                }
+            });
+        });
 
         container.appendChild(slotDiv);
     }
