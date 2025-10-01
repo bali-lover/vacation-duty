@@ -525,95 +525,186 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
             display: flex;
             justify-content: center;
             align-items: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .modal-content {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            width: 400px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            width: 550px;
             max-width: 90%;
+            animation: slideIn 0.3s ease;
+            overflow: hidden;
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
+            padding: 24px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-bottom: none;
         }
 
         .modal-header h3 {
             margin: 0;
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-header h3::before {
+            content: '⏰';
+            font-size: 24px;
         }
 
         .close {
             cursor: pointer;
-            font-size: 24px;
-            font-weight: bold;
-            color: #999;
+            font-size: 28px;
+            font-weight: normal;
+            color: rgba(255, 255, 255, 0.9);
+            transition: all 0.2s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .close:hover {
-            color: #333;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
         }
 
         .modal-body {
-            padding: 20px;
+            padding: 28px;
         }
 
         .time-slots {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .time-slots::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .time-slots::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .time-slots::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .time-slots::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         .time-slot {
             display: grid;
-            grid-template-columns: 100px 100px 1fr 30px;
-            gap: 10px;
+            grid-template-columns: 90px 90px 1fr 36px;
+            gap: 12px;
             align-items: center;
-            padding: 10px;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            background: #f8f9fa;
+            padding: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .time-slot:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
         }
 
         .time-input {
-            padding: 4px 6px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 8px 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
             text-align: center;
+            font-weight: 600;
+            color: #495057;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .time-input::placeholder {
+            color: #adb5bd;
+            font-weight: 400;
         }
 
         .delete-slot {
-            background: #dc3545;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
             color: white;
             border: none;
-            border-radius: 4px;
-            width: 24px;
-            height: 24px;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(238, 90, 111, 0.3);
         }
 
         .delete-slot:hover {
-            background: #c82333;
+            background: linear-gradient(135deg, #ff5252 0%, #e63946 100%);
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(238, 90, 111, 0.4);
         }
 
         .add-time-slot {
             text-align: center;
-            margin: 15px 0;
+            margin: 20px 0 16px 0;
         }
 
         .time-slot label {
@@ -624,27 +715,41 @@
         }
 
         .time-duty-type {
-            padding: 6px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
             font-size: 14px;
             flex: 1;
-            margin-left: 10px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+
+        .time-duty-type:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .modal-actions {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: flex-end;
-            margin-top: 20px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 2px solid #f1f3f5;
         }
 
         .btn-secondary {
-            background: #6c757d;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
         }
 
         .btn-secondary:hover {
-            background: #5a6268;
+            background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
         }
 
         /* 해외여행 위저드 스타일 */
