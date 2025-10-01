@@ -1888,13 +1888,9 @@ function displayCalculationResult() {
     const workDaysCount = period.allDates.filter(d => d.isWorkDay).length;
     const weekendCount = period.allDates.filter(d => d.isWeekend).length;
 
-    resultDiv.innerHTML = `
-        <div style="color: #6f42c1; font-weight: bold; margin-bottom: 10px;">
-            📋 ${dutyTypeName} 신청이 필요합니다
-        </div>
-        <div style="font-size: 14px; margin-bottom: 10px; padding: 10px; background: white; border-radius: 6px;">
-            <strong>${startDateStr}(${startDayOfWeek}) ${period.startTime} ~ ${endDateStr}(${endDayOfWeek}) ${period.endTime}</strong>
-        </div>
+
+    // 연가일 경우에만 근무일 차감 정보 표시
+    const workDayInfo = travelWizardData.dutyType === 'vacation' ? `
         <div style="font-size: 13px; color: #666; margin-top: 10px;">
             • 실제 연가일: ${workDaysCount}일 (근무일만 차감)
             ${weekendCount > 0 ? `<br>• 주말/공휴일: ${weekendCount}일 (자동 제외)` : ''}
@@ -1902,6 +1898,16 @@ function displayCalculationResult() {
         <div style="font-size: 12px; color: #999; margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
             💡 나이스에서 자동으로 주말/공휴일을 제외하고 연가를 차감합니다.
         </div>
+    ` : '';
+
+    resultDiv.innerHTML = `
+        <div style="color: #6f42c1; font-weight: bold; margin-bottom: 10px;">
+            📋 ${dutyTypeName} 신청이 필요합니다
+        </div>
+        <div style="font-size: 14px; margin-bottom: 10px; padding: 10px; background: white; border-radius: 6px;">
+            <strong>${startDateStr}(${startDayOfWeek}) ${period.startTime} ~ ${endDateStr}(${endDayOfWeek}) ${period.endTime}</strong>
+        </div>
+        ${workDayInfo}
     `;
 }
 
