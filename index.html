@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>방학 중 복무 신청</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            width: 100vw;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            max-width: none;
+        }
+
+        .header {
+            text-align: left;
+            margin-bottom: 20px;
+            padding: 15px 0;
+            width: calc(100vw - 40px);
+            max-width: none;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: minmax(400px, 500px) minmax(180px, 220px) 1fr;
+            gap: 20px;
+            align-items: stretch;
+            width: calc(100vw - 40px);
+            max-width: none;
+        }
+
+        .calendar-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-panel {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-top: 20px;
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+
+        .day-name {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            font-size: 13px;
+            font-weight: 600;
+            min-height: 45px;
+        }
+
+        .calendar-day:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .calendar-day.weekend {
+            color: #FFB6C1;
+        }
+
+        .calendar-day.holiday {
+            background: rgba(255, 107, 107, 0.3);
+            color: #FFB6C1;
+        }
+
+        /* 복무 유형별 스타일 */
+        .calendar-day.duty-41 {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4CAF50;
+        }
+
+        .calendar-day.duty-work {
+            background: rgba(33, 150, 243, 0.3);
+            border: 2px solid #2196F3;
+        }
+
+        .calendar-day.duty-business {
+            background: rgba(255, 152, 0, 0.3);
+            border: 2px solid #FF9800;
+        }
+
+        .calendar-day.duty-vacation {
+            background: rgba(244, 67, 54, 0.3);
+            border: 2px solid #F44336;
+        }
+
+        .calendar-day.duty-overseas {
+            background: rgba(156, 39, 176, 0.3);
+            border: 2px solid #9C27B0;
+        }
+
+        .calendar-day.duty-weekend-excluded {
+            background: rgba(200, 200, 200, 0.2);
+            border: 2px dashed #999;
+            opacity: 0.7;
+        }
+
+        /* 주말이면서 복무일인 경우 */
+        .calendar-day.weekend.duty-41 {
+            background: rgba(76, 175, 80, 0.2);
+            border: 2px solid #4CAF50;
+            color: #333;
+        }
+
+        .calendar-day.weekend.duty-work {
+            background: rgba(33, 150, 243, 0.2);
+            border: 2px solid #2196F3;
+            color: #333;
+        }
+
+        .calendar-day.weekend.duty-business {
+            background: rgba(255, 152, 0, 0.2);
+            border: 2px solid #FF9800;
+            color: #333;
+        }
+
+        .calendar-day.weekend.duty-vacation {
+            background: rgba(244, 67, 54, 0.2);
+            border: 2px solid #F44336;
+            color: #333;
+        }
+
+        .calendar-day.weekend.duty-overseas {
+            background: rgba(156, 39, 176, 0.2);
+            border: 2px solid #9C27B0;
+            color: #333;
+        }
+
+        .calendar-day.selected {
+            background: rgba(255, 215, 0, 0.5);
+            border: 2px solid #FFD700;
+        }
+
+        .calendar-day.selected-range {
+            background: rgba(255, 215, 0, 0.3);
+        }
+
+        .calendar-day.split-selected {
+            background: rgba(255, 0, 0, 0.5);
+            border: 2px solid #dc3545;
+            transform: scale(0.95);
+        }
+
+        .calendar-day.dragging {
+            opacity: 0.5;
+            transform: scale(0.9);
+            z-index: 1000;
+        }
+
+        .drop-zone {
+            background: white;
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 60px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .drop-zone:hover {
+            border-color: #007bff;
+            background: rgba(0, 123, 255, 0.1);
+        }
+
+        .drop-zone.drag-over {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.2);
+            transform: scale(1.05);
+        }
+
+        .drop-icon {
+            font-size: 24px;
+        }
+
+        .drop-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .duty-type {
+            font-size: 11px;
+            margin-top: 3px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .duty-type.type-41 {
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+        }
+
+        .duty-type.type-work {
+            background: rgba(33, 150, 243, 0.8);
+            color: white;
+        }
+
+        .duty-type.type-business {
+            background: rgba(255, 152, 0, 0.8);
+            color: white;
+        }
+
+        .duty-type.type-vacation {
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+        }
+
+        .duty-type.type-overseas {
+            background: rgba(156, 39, 176, 0.8);
+            color: white;
+        }
+
+        .duty-type.type-weekend-excluded {
+            background: rgba(150, 150, 150, 0.7);
+            color: white;
+            font-size: 10px;
+        }
+
+        /* 혼합 복무 유형 스타일 */
+        .calendar-day.duty-mixed {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .calendar-day.duty-mixed:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .duty-type.type-mixed {
+            /* 배경은 JavaScript에서 동적으로 설정 */
+            color: white;
+            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* 혼합 복무 유형의 주말 처리 */
+        .calendar-day.weekend.duty-mixed {
+            opacity: 0.8;
+        }
+
+
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .nav-btn {
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .current-month {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #007bff;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #999;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .application-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .application-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .application-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .application-type {
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.8);
+            color: black;
+        }
+
+        .status-approved {
+            background: rgba(76, 175, 80, 0.8);
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+            font-size: 11px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .approval-details {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .approval-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .approval-item-header {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 5px;
+        }
+
+        .approval-line {
+            margin-bottom: 20px;
+        }
+
+        .approval-box {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+
+        .period-info {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            width: 400px;
+            max-width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .close {
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .time-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .time-slot {
+            display: grid;
+            grid-template-columns: 100px 100px 1fr 30px;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            background: #f8f9fa;
+        }
+
+        .time-input {
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .delete-slot {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-slot:hover {
+            background: #c82333;
+        }
+
+        .add-time-slot {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .time-slot label {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+            min-width: 120px;
+        }
+
+        .time-duty-type {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* 해외여행 위저드 스타일 */
+        .wizard-step {
+            min-height: 300px;
+        }
+
+        .duty-option {
+            transition: all 0.3s ease;
+        }
+
+        .duty-option:hover {
+            border-color: #6f42c1 !important;
+            background: rgba(111, 66, 193, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .duty-option.selected {
+            border-color: #6f42c1 !important;
+            background: rgba(111, 66, 193, 0.2);
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .calendar-section {
+                max-width: 500px;
+                margin: 0 auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .calendar {
+                font-size: 12px;
+            }
+
+            .calendar-day {
+                min-height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <h1 class="text-2xl font-bold">📅 방학 중 복무 신청</h1>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div>
+                        <label style="font-size: 14px; color: #666; margin-right: 5px;">이름</label>
+                        <input type="text" id="teacher-name" placeholder="성명" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; width: 100px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 14px; color: #666; margin-right: 5px;">부서</label>
+                        <select id="teacher-department" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; width: 120px;">
+                            <option value="">선택</option>
+                            <option value="교무기획부">교무기획부</option>
+                            <option value="미래교육연구부">미래교육연구부</option>
+                            <option value="생활안전인권부">생활안전인권부</option>
+                            <option value="진로상담부">진로상담부</option>
+                            <option value="학생자치부">학생자치부</option>
+                            <option value="과학정보부">과학정보부</option>
+                            <option value="인문복지부">인문복지부</option>
+                            <option value="교육과정부">교육과정부</option>
+                            <option value="문화예술체육부">문화예술체육부</option>
+                            <option value="1학년부">1학년부</option>
+                            <option value="2학년부">2학년부</option>
+                            <option value="3학년부">3학년부</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="firebase-status" style="padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #f8d7da; color: #721c24;">🔴 연결 안됨</span>
+                        <button onclick="showFirebaseSettings()" style="padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">⚙️ Firebase 설정</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 달력 섹션 -->
+            <div class="calendar-section">
+                <div class="month-nav">
+                    <button class="nav-btn" onclick="changeMonth(-1)">◀ 이전</button>
+                    <div class="current-month" id="current-month">2025년 7월</div>
+                    <button class="nav-btn" onclick="changeMonth(1)">다음 ▶</button>
+                </div>
+
+                <div class="calendar-header">
+                    <div class="day-name">일</div>
+                    <div class="day-name">월</div>
+                    <div class="day-name">화</div>
+                    <div class="day-name">수</div>
+                    <div class="day-name">목</div>
+                    <div class="day-name">금</div>
+                    <div class="day-name">토</div>
+                </div>
+
+                <div class="calendar" id="calendar"></div>
+
+            </div>
+
+            <!-- 복무 유형 변경 -->
+            <div class="control-panel">
+                <h4 style="margin-bottom: 15px; font-size: 16px; font-weight: bold;">📅 복무 유형 변경</h4>
+                <p style="font-size: 12px; color: #666; margin-bottom: 15px;">날짜를 끌어다 놓으세요</p>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+                    <div class="drop-zone" id="drop-41" data-type="41">
+                        <div class="drop-icon">📚</div>
+                        <div class="drop-label">41조 연수</div>
+                    </div>
+                    <div class="drop-zone" id="drop-work" data-type="work">
+                        <div class="drop-icon">🏢</div>
+                        <div class="drop-label">근무</div>
+                    </div>
+                    <div class="drop-zone" id="drop-business" data-type="business">
+                        <div class="drop-icon">✈️</div>
+                        <div class="drop-label">출장</div>
+                    </div>
+                    <div class="drop-zone" id="drop-vacation" data-type="vacation">
+                        <div class="drop-icon">🏖️</div>
+                        <div class="drop-label">연가</div>
+                    </div>
+                    <div class="drop-zone" id="drop-overseas" data-type="overseas">
+                        <div class="drop-icon">🌍</div>
+                        <div class="drop-label">국외연수</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <button class="btn" onclick="showTravelWizard()" style="background: #6f42c1; font-size: 13px; padding: 10px 8px;">
+                        ✈️ 해외여행 도우미
+                    </button>
+                </div>
+            </div>
+
+            <!-- 제어 패널 -->
+            <div class="control-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 class="text-xl font-bold">📋 결재 상신 정보</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn" onclick="generateApprovalInfo()" style="padding: 10px 12px !important; font-size: 12px !important; width: auto !important;">📋 결재 정보 생성</button>
+                        <button class="btn" onclick="sendToFirebase()" style="padding: 10px 12px !important; font-size: 12px !important; width: auto !important; background: #28a745;">📤 전송</button>
+                    </div>
+                </div>
+
+                <!-- 결재 정보 -->
+                <div class="form-section" id="approval-section">
+
+                    <!-- 라인 1: 본인 ▶ 미래교육연구부장 ▶ 교감 ▶ 교장 -->
+                    <div id="approval-line1" class="approval-line">
+                        <h4 style="font-weight: bold; margin-bottom: 10px; color: #2196F3;">📋 라인 1: 본인 ▶ 미래교육연구부장 ▶ 교감 ▶ 교장</h4>
+                        <div class="approval-box">
+                            <div id="approval-content1" class="approval-details">결재 정보 생성 버튼을 눌러주세요.</div>
+                        </div>
+                    </div>
+
+                    <!-- 라인 2: 본인 ▶ 교무기획부장 ▶ 교감 ▶ 교장 -->
+                    <div id="approval-line2" class="approval-line" style="margin-top: 20px;">
+                        <h4 style="font-weight: bold; margin-bottom: 10px; color: #FF9800;">📋 라인 2: 본인 ▶ 교무기획부장 ▶ 교감 ▶ 교장</h4>
+                        <div class="approval-box">
+                            <div id="approval-content2" class="approval-details">결재 정보 생성 버튼을 눌러주세요.</div>
+                        </div>
+                    </div>
+
+                    <!-- 생성된 사유 (해외여행 도우미) -->
+                    <div id="reason-section" class="approval-line" style="margin-top: 20px; display: none;">
+                        <h4 style="font-weight: bold; margin-bottom: 10px; color: #6f42c1;">✈️ 생성된 사유 (해외여행 도우미)</h4>
+                        <div class="approval-box">
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <textarea id="main-generated-reason" readonly style="flex: 1; min-height: 60px; background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; resize: vertical;"></textarea>
+                                <button class="btn btn-secondary" onclick="copyMainReason()" style="width: auto; padding: 10px 12px; font-size: 12px;">📋 복사</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 미세조정 모달 -->
+    <div id="detail-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-date-title">날짜별 세부 복무 설정</h3>
+                <span class="close" onclick="closeDetailModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="time-slots" id="time-slots-container">
+                    <!-- 시간 슬롯들이 동적으로 추가됩니다 -->
+                </div>
+                <div class="add-time-slot">
+                    <button class="btn btn-secondary" onclick="addTimeSlot()">+ 시간 추가</button>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn" onclick="saveDetailSettings()">저장</button>
+                    <button class="btn btn-secondary" onclick="closeDetailModal()">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 해외여행 위저드 모달 -->
+    <div id="travel-wizard-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 500px; max-width: 95%;">
+            <div class="modal-header">
+                <h3 id="wizard-title">해외여행 도우미 - 1단계</h3>
+                <span class="close" onclick="closeTravelWizard()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- 1단계: 여행 기간 설정 -->
+                <div id="wizard-step1" class="wizard-step">
+                    <h4 style="margin-bottom: 15px; color: #6f42c1;">📅 여행 기간을 입력해주세요</h4>
+
+                    <div class="form-group">
+                        <label>출국 일시</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="date" id="departure-date" style="flex: 1;">
+                            <input type="time" id="departure-time" value="22:00" style="flex: 1;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>입국 일시</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="date" id="arrival-date" style="flex: 1;">
+                            <input type="time" id="arrival-time" value="05:00" style="flex: 1;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>여행 목적지</label>
+                        <input type="text" id="travel-destination" placeholder="예: 베트남, 일본, 태국">
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn" onclick="goToStep2()">다음 단계 →</button>
+                    </div>
+                </div>
+
+                <!-- 2단계: 복무 유형 선택 -->
+                <div id="wizard-step2" class="wizard-step" style="display: none;">
+                    <h4 style="margin-bottom: 15px; color: #6f42c1;">📋 복무 유형을 선택해주세요</h4>
+
+                    <div style="display: grid; gap: 15px;">
+                        <div class="duty-option" onclick="selectDutyType('vacation')" style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 24px;">🏖️</span>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 16px;">연가</div>
+                                    <div style="font-size: 12px; color: #666;">개인 여행, 가족 여행</div>
+                                    <div style="font-size: 11px; color: #999;">결재라인: 본인 → 교무기획부장 → 교감 → 교장</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="duty-option" onclick="selectDutyType('overseas')" style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 24px;">🌍</span>
+                                <div>
+                                    <div style="font-weight: bold; font-size: 16px;">국외자율연수</div>
+                                    <div style="font-size: 12px; color: #666;">교과 관련 연수, 교육 자료 수집</div>
+                                    <div style="font-size: 11px; color: #999;">결재라인: 본인 → 미래교육연구부장 → 교감 → 교장</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="goToStep1()">← 이전</button>
+                        <button class="btn" onclick="goToStep3()" id="next-step2" disabled>다음 단계 →</button>
+                    </div>
+                </div>
+
+                <!-- 3단계: 자동 계산 및 확인 -->
+                <div id="wizard-step3" class="wizard-step" style="display: none;">
+                    <h4 style="margin-bottom: 15px; color: #6f42c1;">✅ 계산 결과 및 확인</h4>
+
+                    <div id="calculation-result" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <!-- 계산 결과가 여기에 표시됩니다 -->
+                    </div>
+
+                    <div class="form-group">
+                        <label>생성된 사유</label>
+                        <div style="display: flex; gap: 5px;">
+                            <textarea id="generated-reason" readonly style="flex: 1; min-height: 60px; background: #f8f9fa;"></textarea>
+                            <button class="btn btn-secondary" onclick="copyReason()" style="width: auto; padding: 8px 12px; font-size: 12px;">복사</button>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="goToStep2()">← 이전</button>
+                        <button class="btn" onclick="applyTravelSchedule()" style="background: #28a745;">적용하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase 설정 모달 -->
+    <div id="firebaseModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+        <div class="modal-content" style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">🔧 Firebase 설정</h2>
+            <div id="savedSettingsInfo" style="display: none; background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; margin-bottom: 1rem;">
+                저장된 설정이 있습니다. 필요시 수정해주세요.
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label for="firebaseApiKey" style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px;">Firebase API Key:</label>
+                <input type="password" id="firebaseApiKey" placeholder="Firebase API Key 입력" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 6px;">
+            </div>
+            <div style="margin-bottom: 1.5rem;">
+                <label for="firebaseProjectId" style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px;">Firebase Project ID:</label>
+                <input type="text" id="firebaseProjectId" placeholder="Project ID 입력" style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 6px;">
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button onclick="saveFirebaseSettings()" style="flex: 1; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white;">설정 저장</button>
+                <button onclick="clearFirebaseSettings()" style="flex: 1; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; background: #ef4444; color: white;">설정 삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
